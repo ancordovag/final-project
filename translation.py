@@ -1,108 +1,36 @@
 from __future__ import unicode_literals, print_function, division
-from io import open
-import unicodedata
-import string
-import re
+
 import random
 
 import torch
 import torch.nn as nn
 from torch import optim
-import torch.nn.functional as F
+
+import time
+import math
+
+import matplotlib.pyplot as plt
+
+plt.switch_backend('agg')
+import matplotlib.ticker as ticker
+import numpy as np
+from utils import *
+
+from argparse import ArgumentParser
 
 from networks import EncoderRNN, DecoderRNN, AttnDecoderRNN
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 SOS_token = 0
 EOS_token = 1
-
-
-class Lang:
-    def __init__(self, name):
-        self.name = name
-        self.word2index = {}
-        self.word2count = {}
-        self.index2word = {0: "SOS", 1: "EOS"}
-        self.n_words = 2  # Count SOS and EOS
-
-    def addSentence(self, sentence):
-        for word in sentence.split(' '):
-            self.addWord(word)
-
-    def addWord(self, word):
-        if word not in self.word2index:
-            self.word2index[word] = self.n_words
-            self.word2count[word] = 1
-            self.index2word[self.n_words] = word
-            self.n_words += 1
-        else:
-            self.word2count[word] += 1
-
-# Turn a Unicode string to plain ASCII, thanks to
-# https://stackoverflow.com/a/518232/2809427
-def unicodeToAscii(s):
-    return ''.join(
-        c for c in unicodedata.normalize('NFD', s)
-        if unicodedata.category(c) != 'Mn'
-    )
-
-# Lowercase, trim, and remove non-letter characters
-
-
-def normalizeString(s):
-    s = unicodeToAscii(s.lower().strip())
-    s = re.sub(r"([.!?])", r" \1", s)
-    s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
-    return s
-
-def readLangs(lang1="de", lang2="es", reverse=False):
-    print("Reading lines...")
-
-    # Read the file and split into lines
-    lines = open('%s-%s.txt' % (lang1, lang2), encoding='utf-8').\
-        read().strip().split('\n')
-
-    # Split every line into pairs and normalize
-    pairs = [[normalizeString(s) for s in l.split('\t')] for l in lines]
-
-    # Reverse pairs, make Lang instances
-    if reverse:
-        pairs = [list(reversed(p)) for p in pairs]
-        input_lang = Lang(lang2)
-        output_lang = Lang(lang1)
-    else:
-        input_lang = Lang(lang1)
-        output_lang = Lang(lang2)
-
-    return input_lang, output_lang, pairs
-
 MAX_LENGTH = 200
 
-eng_prefixes = (
-    "i am ", "i m ",
-    "he is", "he s ",
-    "she is", "she s ",
-    "you are", "you re ",
-    "we are", "we re ",
-    "they are", "they re "
-)
-
-
-def filterPair(p):
-    return len(p[0].split(' ')) < MAX_LENGTH and \
-        len(p[1].split(' ')) < MAX_LENGTH and \
-        p[1].startswith(eng_prefixes)
-
-
-def filterPairs(pairs):
-    return [pair for pair in pairs if filterPair(pair)]
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def prepareData(lang1, lang2, reverse=False):
     input_lang, output_lang, pairs = readLangs(lang1, lang2, reverse)
     print("Read %s sentence pairs" % len(pairs))
-    #pairs = filterPairs(pairs)
-    #print("Trimmed to %s sentence pairs" % len(pairs))
+    # pairs = filterPairs(pairs)
+    # print("Trimmed to %s sentence pairs" % len(pairs))
     print("Counting words...")
     for pair in pairs:
         input_lang.addSentence(pair[0])
@@ -119,12 +47,10 @@ print(random.choice(pairs))
 def indexesFromSentence(lang, sentence):
     return [lang.word2index[word] for word in sentence.split(' ')]
 
-
 def tensorFromSentence(lang, sentence):
     indexes = indexesFromSentence(lang, sentence)
     indexes.append(EOS_token)
     return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
-
 
 def tensorsFromPair(pair):
     input_tensor = tensorFromSentence(input_lang, pair[0])
@@ -133,8 +59,8 @@ def tensorsFromPair(pair):
 
 teacher_forcing_ratio = 0.5
 
-
-def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, max_length=MAX_LENGTH):
+def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion,
+          max_length=MAX_LENGTH):
     encoder_hidden = encoder.initHidden()
 
     encoder_optimizer.zero_grad()
@@ -185,9 +111,6 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
 
     return loss.item() / target_length
 
-import time
-import math
-
 
 def asMinutes(s):
     m = math.floor(s / 60)
@@ -201,6 +124,7 @@ def timeSince(since, percent):
     es = s / (percent)
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
+
 
 def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
     start = time.time()
@@ -236,11 +160,8 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
             plot_loss_total = 0
 
     showPlot(plot_losses)
+    return encoder, decoder
 
-import matplotlib.pyplot as plt
-plt.switch_backend('agg')
-import matplotlib.ticker as ticker
-import numpy as np
 
 def showPlot(points):
     plt.figure()
@@ -249,6 +170,7 @@ def showPlot(points):
     loc = ticker.MultipleLocator(base=0.2)
     ax.yaxis.set_major_locator(loc)
     plt.plot(points)
+
 
 def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
     with torch.no_grad():
@@ -264,9 +186,7 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
             encoder_outputs[ei] += encoder_output[0, 0]
 
         decoder_input = torch.tensor([[SOS_token]], device=device)  # SOS
-
         decoder_hidden = encoder_hidden
-
         decoded_words = []
         decoder_attentions = torch.zeros(max_length, max_length)
 
@@ -285,21 +205,57 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
 
         return decoded_words, decoder_attentions[:di + 1]
 
+
 def evaluateRandomly(encoder, decoder, n=10):
+    destinations = []
+    inferences = []
+
     for i in range(n):
         pair = random.choice(pairs)
-        print('>', pair[0])
-        print('=', pair[1])
         output_words, attentions = evaluate(encoder, decoder, pair[0])
         output_sentence = ' '.join(output_words)
+
+        print('>', pair[0])
+        print('=', pair[1])
         print('<', output_sentence)
         print('')
 
+        destinations.append(pair[1])
+        inferences.append(output_sentence)
+        return destinations, inferences
+
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
+    parser.add_argument("--epochs", type=int, default=1000, help="Number of training evaluations")
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
+                        help="Device (cuda or cpu)")
+    parser.add_argument("--max_length", type=int, default=64, help="Maximum length of the output utterances")
+
+    args = parser.parse_args()
+    epochs = args.epochs
+    model_name = args.model_name
+    model_name = "Epochs" + str(epochs) if model_name == "noname" else model_name
+    device = args.device
     hidden_size = 256
+
     encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
     attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
+    encoder1, attn_decoder1 = trainIters(encoder1, attn_decoder1, epochs, print_every=5000)
+    checkpoint_encoder = {'input_size': input_lang.n_words,
+                          'hidden_size': hidden_size,
+                          'state_dict': encoder1.state_dict()}
+    checkpoint_decoder = {'hidden_size': hidden_size,
+                          'output_size': output_lang.n_words,
+                          'dropout': 0.1,
+                          'state_dict': attn_decoder1.state_dict()}
+    log_dir_encoder = make_prex_logdir("encoder", model_name)
+    log_dir_decoder = make_prex_logdir("decoder", model_name)
+    last_log_dir_encoder = make_last_logdir("last_encoder", model_name)
+    last_log_dir_decoder = make_last_logdir("last_decoder", model_name)
 
-    trainIters(encoder1, attn_decoder1, 75000, print_every=5000)
-    print("-"*20)
-    evaluateRandomly(encoder1, attn_decoder1)
+    torch.save(checkpoint_encoder, log_dir_encoder)
+    torch.save(checkpoint_decoder, log_dir_decoder)
+    empty_last_folder()
+    torch.save(checkpoint_encoder, last_log_dir_encoder)
+    torch.save(checkpoint_decoder, last_log_dir_decoder)
