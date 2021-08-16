@@ -52,7 +52,7 @@ def tensorsFromPair(pair):
 teacher_forcing_ratio = 0.5
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion,
-          max_length=MAX_LENGTH):
+          max_length=MAX_LENGTH, attention=True):
     encoder_hidden = encoder.initHidden()
 
     encoder_optimizer.zero_grad()
@@ -79,16 +79,24 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     if use_teacher_forcing:
         # Teacher forcing: Feed the target as the next input
         for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
+            if attention:
+                decoder_output, decoder_hidden, decoder_attention = decoder(
+                    decoder_input, decoder_hidden, encoder_outputs)
+            else:
+                decoder_output, decoder_hidden = decoder(
+                    decoder_input, decoder_hidden)
             loss += criterion(decoder_output, target_tensor[di])
             decoder_input = target_tensor[di]  # Teacher forcing
 
     else:
         # Without teacher forcing: use its own predictions as the next input
         for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
+            if attention:
+                decoder_output, decoder_hidden, decoder_attention = decoder(
+                    decoder_input, decoder_hidden, encoder_outputs)
+            else:
+                decoder_output, decoder_hidden = decoder(
+                    decoder_input, decoder_hidden)
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach()  # detach from history as input
 
@@ -121,7 +129,7 @@ def format_time(result):
     output = datetime.strftime(date, "%M:%S:%f")
     return output
 
-def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01):
+def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01,attention=True):
     print("Training...")
     start = time.time()
     print_loss_total = 0  # Reset every print_every
@@ -138,7 +146,7 @@ def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01):
         target_tensor = training_pair[1]
 
         loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, criterion)
+                     decoder, encoder_optimizer, decoder_optimizer, criterion,attention=attention)
         print_loss_total += loss
 
         if iter % print_every == 0:
@@ -206,8 +214,8 @@ def evaluateRandomly(encoder, decoder, n=10):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
-    parser.add_argument("--epochs", type=int, default=110, help="Number of training evaluations")
-    parser.add_argument("--decoder", type=str, default="A", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of training evaluations")
+    parser.add_argument("--decoder", type=str, default="B", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
     parser.add_argument("--recurrent", type=str, default="GRU", choices=["GRU","LSTM"], help="GRU or LSTM")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
@@ -225,10 +233,12 @@ if __name__ == '__main__':
     if decoder_type == "B":
         decoder1 = DecoderRNN(hidden_size, output_lang.n_words,
                               recurrent_type=recurrent_type).to(device)
+        bool_attention = False
     else:
         decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words,
                                   recurrent_type=recurrent_type, dropout_p=0.1).to(device)
-    encoder1, decoder1 = trainIters(encoder1, decoder1, epochs, print_every=1000)
+        bool_attention = True
+    encoder1, decoder1 = trainIters(encoder1, decoder1, epochs, print_every=1000,attention=bool_attention)
     checkpoint_encoder = {'input_size': input_lang.n_words,
                           'hidden_size': hidden_size,
                           'state_dict': encoder1.state_dict()}

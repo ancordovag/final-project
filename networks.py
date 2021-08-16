@@ -41,7 +41,7 @@ class DecoderRNN(nn.Module):
     def forward(self, input, hidden):
         output = self.embedding(input).view(1, 1, -1)
         output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
+        output, hidden = self.recurrent(output, hidden)
         output = self.softmax(self.out(output[0]))
         return output, hidden
 
