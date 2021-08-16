@@ -2,13 +2,14 @@ import torch
 from translation import evaluate, evaluateRandomly
 from argparse import ArgumentParser
 from utils import get_model, get_last_model
-from networks import EncoderRNN, AttnDecoderRNN
+from networks import EncoderRNN, DecoderRNN, AttnDecoderRNN
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 parser = ArgumentParser()
 parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
+parser.add_argument("--decoder", type=str, default="A", help="Type of Decoder. A: Attention, B: Basic")
 args = parser.parse_args()
 model_name = args.model_name
 
@@ -26,10 +27,15 @@ if model_name == "noname":
 else:
     log_dir_decoder = get_model("decoder", model_name)
 checkpoint_decoder = torch.load(log_dir_decoder)
-attn_decoder_eval = AttnDecoderRNN(checkpoint_decoder['hidden_size'],
-                                   checkpoint_decoder['output_size'], checkpoint_decoder['dropout']).to(device)
-attn_decoder_eval.load_state_dict(checkpoint_decoder['state_dict'])
-references, candidates = evaluateRandomly(encoder_eval, attn_decoder_eval)
+decoder_type = checkpoint_decoder['decoder']
+if decoder_type=='A':
+    decoder_eval = AttnDecoderRNN(checkpoint_decoder['hidden_size'],
+                    checkpoint_decoder['output_size'], checkpoint_decoder['dropout']).to(device)
+else:
+    decoder_eval = DecoderRNN(checkpoint_decoder['hidden_size'],
+                    checkpoint_decoder['output_size']).to(device)
+decoder_eval.load_state_dict(checkpoint_decoder['state_dict'])
+references, candidates = evaluateRandomly(encoder_eval, decoder_eval)
 cumm_bleu = 0
 N = len(references)
 sf = SmoothingFunction()

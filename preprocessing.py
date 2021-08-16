@@ -1,3 +1,5 @@
+import sys
+
 dirname = 'europarl'
 german_dir = 'Europarl.de-es.de'
 spanish_dir = 'Europarl.de-es.es'
@@ -21,6 +23,7 @@ spanish_file = open(spanish_filename, mode='rt', encoding='utf-8')
 new_file = open('de-es.txt',mode='w',encoding='utf-8')
 max_lines = length_doc(german_filename)
 print("Length of the Document: ",max_lines)
+#sys.exit()
 for i in range(max_lines):
 	german_line = german_file.readline().rstrip('\n')
 	spanish_line = spanish_file.readline()

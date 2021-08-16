@@ -6,14 +6,10 @@ import torch
 import torch.nn as nn
 from torch import optim
 
+import datetime
 import time
 import math
 
-import matplotlib.pyplot as plt
-
-plt.switch_backend('agg')
-import matplotlib.ticker as ticker
-import numpy as np
 from utils import *
 
 from argparse import ArgumentParser
@@ -29,15 +25,11 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 def prepareData(lang1, lang2, reverse=False):
     input_lang, output_lang, pairs = readLangs(lang1, lang2, reverse)
     print("Read %s sentence pairs" % len(pairs))
-    # pairs = filterPairs(pairs)
-    # print("Trimmed to %s sentence pairs" % len(pairs))
-    print("Counting words...")
     for pair in pairs:
         input_lang.addSentence(pair[0])
         output_lang.addSentence(pair[1])
-    print("Counted words:")
-    print(input_lang.name, input_lang.n_words)
-    print(output_lang.name, output_lang.n_words)
+    print("Counted words in ", input_lang.name, " : ", input_lang.n_words)
+    print("Counted words in ", output_lang.name, " : ", output_lang.n_words)
     return input_lang, output_lang, pairs
 
 
@@ -117,7 +109,6 @@ def asMinutes(s):
     s -= m * 60
     return '%dm %ds' % (m, s)
 
-
 def timeSince(since, percent):
     now = time.time()
     s = now - since
@@ -125,12 +116,15 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
+def format_time(result):
+    date = datetime.utcfromtimestamp(result)
+    output = datetime.strftime(date, "%M:%S:%f")
+    return output
 
-def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
+def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01):
+    print("Training...")
     start = time.time()
-    plot_losses = []
     print_loss_total = 0  # Reset every print_every
-    plot_loss_total = 0  # Reset every plot_every
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
@@ -146,7 +140,6 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
         loss = train(input_tensor, target_tensor, encoder,
                      decoder, encoder_optimizer, decoder_optimizer, criterion)
         print_loss_total += loss
-        plot_loss_total += loss
 
         if iter % print_every == 0:
             print_loss_avg = print_loss_total / print_every
@@ -154,23 +147,9 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
             print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
                                          iter, iter / n_iters * 100, print_loss_avg))
 
-        if iter % plot_every == 0:
-            plot_loss_avg = plot_loss_total / plot_every
-            plot_losses.append(plot_loss_avg)
-            plot_loss_total = 0
-
-    showPlot(plot_losses)
+    final_time = time.time()
+    print('Training time: {}'.format(format_time(final_time - start)))
     return encoder, decoder
-
-
-def showPlot(points):
-    plt.figure()
-    fig, ax = plt.subplots()
-    # this locator puts ticks at regular intervals
-    loc = ticker.MultipleLocator(base=0.2)
-    ax.yaxis.set_major_locator(loc)
-    plt.plot(points)
-
 
 def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
     with torch.no_grad():
@@ -227,28 +206,37 @@ def evaluateRandomly(encoder, decoder, n=10):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
-    parser.add_argument("--epochs", type=int, default=1000, help="Number of training evaluations")
+    parser.add_argument("--epochs", type=int, default=110, help="Number of training evaluations")
+    parser.add_argument("--decoder", type=str, default="A", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
+    parser.add_argument("--recurrent", type=str, default="GRU", choices=["GRU","LSTM"], help="GRU or LSTM")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
-    parser.add_argument("--max_length", type=int, default=64, help="Maximum length of the output utterances")
 
     args = parser.parse_args()
     epochs = args.epochs
+    decoder_type = args.decoder
+    recurrent_type = args.recurrent
     model_name = args.model_name
     model_name = "Epochs" + str(epochs) if model_name == "noname" else model_name
     device = args.device
     hidden_size = 256
 
-    encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
-    attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
-    encoder1, attn_decoder1 = trainIters(encoder1, attn_decoder1, epochs, print_every=5000)
+    encoder1 = EncoderRNN(input_lang.n_words, hidden_size,recurrent_type).to(device)
+    if decoder_type == "B":
+        decoder1 = DecoderRNN(hidden_size, output_lang.n_words,
+                              recurrent_type=recurrent_type).to(device)
+    else:
+        decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words,
+                                  recurrent_type=recurrent_type, dropout_p=0.1).to(device)
+    encoder1, decoder1 = trainIters(encoder1, decoder1, epochs, print_every=1000)
     checkpoint_encoder = {'input_size': input_lang.n_words,
                           'hidden_size': hidden_size,
                           'state_dict': encoder1.state_dict()}
-    checkpoint_decoder = {'hidden_size': hidden_size,
+    checkpoint_decoder = {'decoder': decoder_type,
+                          'hidden_size': hidden_size,
                           'output_size': output_lang.n_words,
                           'dropout': 0.1,
-                          'state_dict': attn_decoder1.state_dict()}
+                          'state_dict': decoder1.state_dict()}
     log_dir_encoder = make_prex_logdir("encoder", model_name)
     log_dir_decoder = make_prex_logdir("decoder", model_name)
     last_log_dir_encoder = make_last_logdir("last_encoder", model_name)
