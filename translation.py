@@ -165,11 +165,11 @@ def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01, a
     return encoder, decoder
 
 
-def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH,recurrent='GRU'):
+def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH, recurrent_type ='GRU'):
     with torch.no_grad():
         input_tensor = tensorFromSentence(input_lang, sentence)
         input_length = input_tensor.size()[0]
-        if recurrent == 'GRU':
+        if recurrent_type == 'GRU':
             encoder_hidden = encoder.initHidden()
         else:
             encoder_hidden = encoder.initLSTMHidden()
@@ -207,13 +207,13 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH,recurrent='GRU'):
         return decoded_words, decoder_attentions[:di + 1]
 
 
-def evaluateRandomly(encoder, decoder, n=100):
+def evaluateRandomly(encoder, decoder, n=100, recurrent_type = 'GRU'):
     destinations = []
     inferences = []
 
     for i in range(n):
         pair = random.choice(pairs)
-        output_words, attentions = evaluate(encoder, decoder, pair[0])
+        output_words, attentions = evaluate(encoder, decoder, pair[0], recurrent_type = recurrent_type)
         output_sentence = ' '.join(output_words)
 
         print('INPUT:', pair[0])
@@ -228,9 +228,9 @@ def evaluateRandomly(encoder, decoder, n=100):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
-    parser.add_argument("--epochs", type=int, default=1000, help="Number of training evaluations")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of training evaluations")
     parser.add_argument("--decoder", type=str, default="B", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
-    parser.add_argument("--recurrent", type=str, default="GRU", choices=["GRU","LSTM"], help="GRU or LSTM")
+    parser.add_argument("--recurrent", type=str, default="LSTM", choices=["GRU","LSTM"], help="GRU or LSTM")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
 

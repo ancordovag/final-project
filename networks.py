@@ -20,7 +20,7 @@ class EncoderRNN(nn.Module):
 
         # It could initialize LSTM or GRU as a recurrent network.
         if recurrent_type == "LSTM":
-            self.recurrent = nn.LSTM(hidden_size,hidden_size)
+            self.recurrent = nn.LSTM(hidden_size, hidden_size)
         else:
             self.recurrent = nn.GRU(hidden_size, hidden_size)
 
