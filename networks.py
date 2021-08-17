@@ -71,9 +71,12 @@ class AttnDecoderRNN(nn.Module):
     def forward(self, input, hidden, encoder_outputs):
         embedded = self.embedding(input).view(1, 1, -1)
         embedded = self.dropout(embedded)
-
-        attn_weights = F.softmax(
-            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
+        if isinstance(self.recurrent,nn.modules.rnn.LSTM):
+            attn_weights = F.softmax(
+                self.attn(torch.cat((embedded[0], hidden[0][0]), 1)), dim=1)
+        else:
+            attn_weights = F.softmax(
+                self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
         attn_applied = torch.bmm(attn_weights.unsqueeze(0),
                                  encoder_outputs.unsqueeze(0))
 
