@@ -1,9 +1,12 @@
 import torch
-from translation import evaluate, evaluateRandomly
+from translation import evaluateRandomly
 from argparse import ArgumentParser
 from utils import get_model, get_last_model
 from networks import EncoderRNN, DecoderRNN, AttnDecoderRNN
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+from nltk.translate.meteor_score import single_meteor_score
+import nltk
+nltk.download('wordnet')
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -40,13 +43,17 @@ else:
 decoder_eval.load_state_dict(checkpoint_decoder['state_dict'])
 references, candidates = evaluateRandomly(encoder_eval, decoder_eval, n=to_evaluate)
 cumm_bleu = 0
+cumm_meteor = 0
 N = len(references)
 sf = SmoothingFunction()
 for reference,candidate in zip(references,candidates):
+    cumm_meteor += single_meteor_score(reference,candidate)
     ref = reference.split()
     cand = candidate.split()
     print(ref)
     print(cand)
     cumm_bleu += sentence_bleu([ref], cand,smoothing_function=sf.method3)
 bleu_score = cumm_bleu/N
+meteor_score = cumm_meteor/N
 print("BLEU score: ", str(bleu_score))
+print("METEOR score: ", str(meteor_score))

@@ -54,9 +54,9 @@ teacher_forcing_ratio = 0.5
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion,
           max_length=MAX_LENGTH, attention=True, recurrent='GRU'):
     if recurrent == 'LSTM':
-        encoder_hidden = encoder.initHidden()
-    else:
         encoder_hidden = encoder.initLSTMHidden()
+    else:
+        encoder_hidden = encoder.initHidden()
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -165,11 +165,14 @@ def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01, a
     return encoder, decoder
 
 
-def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
+def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH,recurrent='GRU'):
     with torch.no_grad():
         input_tensor = tensorFromSentence(input_lang, sentence)
         input_length = input_tensor.size()[0]
-        encoder_hidden = encoder.initHidden()
+        if recurrent == 'GRU':
+            encoder_hidden = encoder.initHidden()
+        else:
+            encoder_hidden = encoder.initLSTMHidden()
 
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
@@ -204,7 +207,7 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
         return decoded_words, decoder_attentions[:di + 1]
 
 
-def evaluateRandomly(encoder, decoder, n=10):
+def evaluateRandomly(encoder, decoder, n=100):
     destinations = []
     inferences = []
 
@@ -213,9 +216,9 @@ def evaluateRandomly(encoder, decoder, n=10):
         output_words, attentions = evaluate(encoder, decoder, pair[0])
         output_sentence = ' '.join(output_words)
 
-        print('>', pair[0])
-        print('=', pair[1])
-        print('<', output_sentence)
+        print('INPUT:', pair[0])
+        print('REFER:', pair[1])
+        print('HYPOS:', output_sentence)
         print('')
 
         destinations.append(pair[1])
@@ -227,7 +230,7 @@ if __name__ == '__main__':
     parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
     parser.add_argument("--epochs", type=int, default=100, help="Number of training evaluations")
     parser.add_argument("--decoder", type=str, default="B", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
-    parser.add_argument("--recurrent", type=str, default="LSTM", choices=["GRU","LSTM"], help="GRU or LSTM")
+    parser.add_argument("--recurrent", type=str, default="GRU", choices=["GRU","LSTM"], help="GRU or LSTM")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
 
