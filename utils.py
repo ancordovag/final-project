@@ -1,3 +1,4 @@
+# Import some useful libraries
 from io import open
 import unicodedata
 from datetime import datetime
@@ -6,6 +7,13 @@ import os
 import shutil
 
 class Lang:
+    """
+    Each language is initialized and stored with a name, 3 dictionaries and a word counter.
+    The dictionaries are:
+    word2index: {word -> index}
+    word2count: {word -> number of times the word have been seen}
+    index2word: {index -> word}
+    """
     def __init__(self, name):
         self.name = name
         self.word2index = {}
@@ -14,10 +22,21 @@ class Lang:
         self.n_words = 2  # Count SOS and EOS
 
     def addSentence(self, sentence):
+        """
+        @param: sentence
+        Split the sentence in tokens, and pass the tokens to the function addWord.
+        This way, all the words of the sentece are added to the object Lang.
+        """
         for word in sentence.split(' '):
             self.addWord(word)
 
     def addWord(self, word):
+        """
+        @param: word
+        If the word has not been added to the Lang, this function add it, assigning an id,
+        setting a counter with value 1 for this word, and for the id created the word is assigned.
+        If the word existed, just add 1 to the counter.
+        """
         if word not in self.word2index:
             self.word2index[word] = self.n_words
             self.word2count[word] = 1
@@ -29,22 +48,29 @@ class Lang:
 # Turn a Unicode string to plain ASCII, thanks to
 # https://stackoverflow.com/a/518232/2809427
 def unicodeToAscii(s):
+    """
+    Turn a Unicode string to plain ASCII, thanks to
+    https://stackoverflow.com/a/518232/2809427
+    """
     return ''.join(
         c for c in unicodedata.normalize('NFD', s)
         if unicodedata.category(c) != 'Mn'
     )
 
-# Lowercase, trim, and remove non-letter characters
-
 
 def normalizeString(s):
+    """
+    Lowercase, trim, and remove non-letter characters
+    """
     s = unicodeToAscii(s.lower().strip())
     s = re.sub(r"([.!?])", r" \1", s)
     s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     return s
 
 def readLangs(lang1="de", lang2="es", reverse=False):
-    # Read the file and split into lines
+    """
+    Read the file and split into lines
+    """
     lines = open('%s-%s.txt' % (lang1, lang2), encoding='utf-8').\
         read().strip().split('\n')
 
@@ -63,7 +89,7 @@ def readLangs(lang1="de", lang2="es", reverse=False):
     return input_lang, output_lang, pairs
 
 def make_prex_logdir(prex:str, model_name: str):
-    """Create unique path to save results and checkpoints, e.g. models/Jul22_19-45-59_gpu-7_gpt2"""
+    """Create unique path to save checkpoints, e.g. models/encoder_Jul22_19-45-59_name"""
     # Code copied from ignite repo
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     logdir = os.path.join(
@@ -71,7 +97,7 @@ def make_prex_logdir(prex:str, model_name: str):
     return logdir
 
 def make_last_logdir(prex:str, model_name: str):
-    """Create unique path to save results and checkpoints, e.g. models/Jul22_19-45-59_gpu-7_gpt2"""
+    """Create unique path to save checkpoints, e.g. models/last/encoder_Jul22_19-45-59_name"""
     # Code copied from ignite repo
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     logdir = os.path.join(
@@ -79,6 +105,7 @@ def make_last_logdir(prex:str, model_name: str):
     return logdir
 
 def get_model(prex:str,model_name:str):
+    """Get the last model saved that matches the prefix and the model_name"""
     full_list = os.listdir("models")
     final_list = [file for file in full_list if prex in file and model_name in file]
     logdir = os.path.join(
@@ -86,6 +113,7 @@ def get_model(prex:str,model_name:str):
     return logdir
 
 def get_last_model(prex:str):
+    """Get the last model saved that matches the prefix"""
     full_list = os.listdir(os.path.join('models', 'last'))
     final_list = [file for file in full_list if prex in file]
     logdir = os.path.join(
@@ -93,6 +121,7 @@ def get_last_model(prex:str):
     return logdir
 
 def empty_last_folder():
+    """Delete all the models saved in the directory 'models/last/' so the last version can replace them"""
     folder = os.path.join('models', 'last')
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
