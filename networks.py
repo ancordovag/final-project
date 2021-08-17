@@ -18,12 +18,14 @@ class EncoderRNN(nn.Module):
 
     def forward(self, input, hidden):
         embedded = self.embedding(input).view(1, 1, -1)
-        output = embedded
-        output, hidden = self.recurrent(output, hidden)
+        output, hidden = self.recurrent(embedded, hidden)
         return output, hidden
 
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size, device=device)
+    def initLSTMHidden(self):
+        return (torch.zeros(1, 1, self.hidden_size, device=device),
+                torch.zeros(1, 1, self.hidden_size, device=device))
 
 class DecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, recurrent_type='GRU'):
@@ -31,7 +33,7 @@ class DecoderRNN(nn.Module):
         self.hidden_size = hidden_size
 
         self.embedding = nn.Embedding(output_size, hidden_size)
-        if recurrent_type=='LSTM':
+        if recurrent_type == 'LSTM':
             self.recurrent = nn.LSTM(hidden_size, hidden_size)
         else:
             self.recurrent = nn.GRU(hidden_size, hidden_size)

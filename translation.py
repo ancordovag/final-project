@@ -52,8 +52,11 @@ def tensorsFromPair(pair):
 teacher_forcing_ratio = 0.5
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion,
-          max_length=MAX_LENGTH, attention=True):
-    encoder_hidden = encoder.initHidden()
+          max_length=MAX_LENGTH, attention=True, recurrent='GRU'):
+    if recurrent == 'LSTM':
+        encoder_hidden = encoder.initHidden()
+    else:
+        encoder_hidden = encoder.initLSTMHidden()
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -124,12 +127,14 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
+
 def format_time(result):
     date = datetime.utcfromtimestamp(result)
     output = datetime.strftime(date, "%H:%M:%S:%f")
     return output
 
-def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01,attention=True):
+
+def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01, attention=True, recurrent='GRU'):
     print("Training...")
     start = time.time()
     print_loss_total = 0  # Reset every print_every
@@ -158,6 +163,7 @@ def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01,at
     final_time = time.time()
     print('Training time: {}'.format(format_time(final_time - start)))
     return encoder, decoder
+
 
 def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
     with torch.no_grad():
@@ -221,7 +227,7 @@ if __name__ == '__main__':
     parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
     parser.add_argument("--epochs", type=int, default=100, help="Number of training evaluations")
     parser.add_argument("--decoder", type=str, default="B", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
-    parser.add_argument("--recurrent", type=str, default="GRU", choices=["GRU","LSTM"], help="GRU or LSTM")
+    parser.add_argument("--recurrent", type=str, default="LSTM", choices=["GRU","LSTM"], help="GRU or LSTM")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
 
@@ -243,7 +249,7 @@ if __name__ == '__main__':
         decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words,
                                   recurrent_type=recurrent_type, dropout_p=0.1).to(device)
         bool_attention = True
-    encoder1, decoder1 = trainIters(encoder1, decoder1, epochs, print_every=1000,attention=bool_attention)
+    encoder1, decoder1 = trainIters(encoder1, decoder1, epochs, print_every=1000,attention=bool_attention,recurrent=recurrent_type)
     checkpoint_encoder = {'input_size': input_lang.n_words,
                           'hidden_size': hidden_size,
                           'state_dict': encoder1.state_dict()}
