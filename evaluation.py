@@ -10,8 +10,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 parser = ArgumentParser()
 parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
 parser.add_argument("--decoder", type=str, default="A", help="Type of Decoder. A: Attention, B: Basic")
+parser.add_argument("--sentences", type=int, default="100", help="Number of Sentences to evaluate")
 args = parser.parse_args()
 model_name = args.model_name
+to_evaluate = args.sentences
 
 if model_name == "noname":
     log_dir_encoder = get_last_model("encoder")
@@ -35,7 +37,7 @@ else:
     decoder_eval = DecoderRNN(checkpoint_decoder['hidden_size'],
                     checkpoint_decoder['output_size']).to(device)
 decoder_eval.load_state_dict(checkpoint_decoder['state_dict'])
-references, candidates = evaluateRandomly(encoder_eval, decoder_eval)
+references, candidates = evaluateRandomly(encoder_eval, decoder_eval, n=to_evaluate)
 cumm_bleu = 0
 N = len(references)
 sf = SmoothingFunction()
