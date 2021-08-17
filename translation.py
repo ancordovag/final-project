@@ -126,7 +126,7 @@ def timeSince(since, percent):
 
 def format_time(result):
     date = datetime.utcfromtimestamp(result)
-    output = datetime.strftime(date, "%M:%S:%f")
+    output = datetime.strftime(date, "%H:%M:%S:%f")
     return output
 
 def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01,attention=True):
@@ -178,8 +178,12 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
         decoder_attentions = torch.zeros(max_length, max_length)
 
         for di in range(max_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
+            try:
+                decoder_output, decoder_hidden, decoder_attention = decoder(
+                    decoder_input, decoder_hidden, encoder_outputs)
+            except:
+                decoder_output, decoder_hidden = decoder(
+                    decoder_input, decoder_hidden)
             decoder_attentions[di] = decoder_attention.data
             topv, topi = decoder_output.data.topk(1)
             if topi.item() == EOS_token:
