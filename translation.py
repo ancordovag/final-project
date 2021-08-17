@@ -151,7 +151,7 @@ def trainIters(encoder, decoder, n_iters, print_every=100, learning_rate=0.01, a
         target_tensor = training_pair[1]
 
         loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, criterion,attention=attention)
+                     decoder, encoder_optimizer, decoder_optimizer, criterion,attention=attention,recurrent=recurrent)
         print_loss_total += loss
 
         if iter % print_every == 0:
@@ -228,9 +228,9 @@ def evaluateRandomly(encoder, decoder, n=100):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
-    parser.add_argument("--epochs", type=int, default=100, help="Number of training evaluations")
-    parser.add_argument("--decoder", type=str, default="B", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
-    parser.add_argument("--recurrent", type=str, default="GRU", choices=["GRU","LSTM"], help="GRU or LSTM")
+    parser.add_argument("--epochs", type=int, default=1000, help="Number of training evaluations")
+    parser.add_argument("--decoder", type=str, default="A", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
+    parser.add_argument("--recurrent", type=str, default="LSTM", choices=["GRU","LSTM"], help="GRU or LSTM")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
 
