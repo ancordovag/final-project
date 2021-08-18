@@ -25,7 +25,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Receive all the parameters than the user wants to give. Those are:
 parser = ArgumentParser()
 parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
-parser.add_argument("--decoder", type=str, default="B", help="Type of Decoder. A: Attention, B: Basic")
+parser.add_argument("--decoder", type=str, default="A", help="Type of Decoder. A: Attention, B: Basic")
 parser.add_argument("--sentences", type=int, default="10", help="Number of Sentences to evaluate")
 parser.add_argument("--recurrent", type=str, default="LSTM", choices=["GRU","LSTM"], help="GRU or LSTM")
 args = parser.parse_args()

@@ -4,5 +4,6 @@ models/**
 models/last/**
 de-es.txt.zip
 de-es.txt
+de-es*
 .idea/**
 

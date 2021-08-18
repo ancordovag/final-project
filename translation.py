@@ -229,7 +229,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
     parser.add_argument("--epochs", type=int, default=100, help="Number of training evaluations")
-    parser.add_argument("--decoder", type=str, default="B", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
+    parser.add_argument("--decoder", type=str, default="A", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
     parser.add_argument("--recurrent", type=str, default="LSTM", choices=["GRU","LSTM"], help="GRU or LSTM")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
@@ -252,7 +252,8 @@ if __name__ == '__main__':
         decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words,
                                   recurrent_type=recurrent_type, dropout_p=0.1).to(device)
         bool_attention = True
-    encoder1, decoder1 = trainIters(encoder1, decoder1, epochs, print_every=100,attention=bool_attention,recurrent=recurrent_type)
+    encoder1, decoder1 = trainIters(encoder1, decoder1, epochs, print_every=1000,
+                                    attention=bool_attention, recurrent= recurrent_type)
     checkpoint_encoder = {'input_size': input_lang.n_words,
                           'hidden_size': hidden_size,
                           'state_dict': encoder1.state_dict()}
