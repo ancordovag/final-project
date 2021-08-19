@@ -39,8 +39,8 @@ def prepareData(lang1, lang2, reverse=False):
     @param lang1: Language of origin
     @param lang2: Target language
     @param reverse: boolean to reverse the pairs
-    @return input_lang:
-    @return output_lang:
+    @return input_lang: language object for origin language
+    @return output_lang:language object for target language
     @return pairs: a list of pairs, each pair a sentence in the
                    original language, the other of the target language
     """
