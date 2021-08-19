@@ -82,14 +82,17 @@ sf = SmoothingFunction()
 # Iterate through the reference-candidate pairs and calculate the scores.
 to_print = 0
 for reference,candidate in zip(references,candidates):
+    if to_print < examples:
+        print('-' * 20, 'Example ', str(to_print+1),'-'*20)
+        print("REF: ", reference)
+        print("INF: ", candidate)
+        to_print += 1
+    elif to_print == examples:
+        print('-'*60)
+        to_print += 1
     cumm_meteor += single_meteor_score(reference,candidate)
     ref = reference.split()
     cand = candidate.split()
-    if to_print < examples:
-        print("REF: ", ref)
-        print("INF: ", cand)
-        print('-'*50)
-        to_print += 1
     cumm_bleu += sentence_bleu([ref], cand, smoothing_function=sf.method3)
 # Calculate the averages
 bleu_score = cumm_bleu/N
