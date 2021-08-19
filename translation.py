@@ -228,7 +228,7 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH, recurrent_type =
         return decoded_words, decoder_attentions[:di + 1]
 
 
-def evaluateRandomly(encoder, decoder, n=100, recurrent_type = 'GRU'):
+def evaluateRandomly(encoder, decoder, n=100, recurrent_type = 'GRU', display=True):
     destinations = []
     inferences = []
 
@@ -236,11 +236,11 @@ def evaluateRandomly(encoder, decoder, n=100, recurrent_type = 'GRU'):
         pair = random.choice(pairs)
         output_words, attentions = evaluate(encoder, decoder, pair[0], recurrent_type = recurrent_type)
         output_sentence = ' '.join(output_words)
-
-        print('INPUT:', pair[0])
-        print('REFER:', pair[1])
-        print('HYPOS:', output_sentence)
-        print('-'*20)
+        if display:
+            print('INPUT:', pair[0])
+            print('REFER:', pair[1])
+            print('HYPOS:', output_sentence)
+            print('-'*20)
 
         destinations.append(pair[1])
         inferences.append(output_sentence)

@@ -32,10 +32,12 @@ parser.add_argument("--model_name", type=str, default="noname", help="Name of th
 parser.add_argument("--decoder", type=str, default="B", help="Type of Decoder. A: Attention, B: Basic")
 parser.add_argument("--sentences", type=int, default="10", help="Number of Sentences to evaluate")
 parser.add_argument("--recurrent", type=str, default="GRU", choices=["GRU","LSTM"], help="GRU or LSTM")
+parser.add_argument("--examples", type=int, default="3", help="Examples to print")
 args = parser.parse_args()
 model_name = args.model_name
 to_evaluate = args.sentences
 recurrent = args.recurrent
+examples = args.examples
 
 # if no name is given, then just evaluate the last model
 # in any case, initialize the Encoder and the Decoder with the loaded checkpoint
@@ -69,7 +71,7 @@ decoder_eval.load_state_dict(checkpoint_decoder['state_dict'])
 
 # Call the evaluation function of the translation script with the number of sentences to evaluate
 # It returns a list of the original translations, and the predicted by the model
-references, candidates = evaluateRandomly(encoder_eval, decoder_eval, n=to_evaluate, recurrent_type=recurrent)
+references, candidates = evaluateRandomly(encoder_eval, decoder_eval, n=to_evaluate, recurrent_type=recurrent, display=False)
 
 # Initialize the BLEU and the METEOR score in 0.
 cumm_bleu = 0
@@ -78,12 +80,16 @@ N = len(references)
 sf = SmoothingFunction()
 
 # Iterate through the reference-candidate pairs and calculate the scores.
+to_print = 0
 for reference,candidate in zip(references,candidates):
     cumm_meteor += single_meteor_score(reference,candidate)
     ref = reference.split()
     cand = candidate.split()
-    print(ref)
-    print(cand)
+    if to_print < examples:
+        print("REF: ", ref)
+        print("INF: ", cand)
+        print('-'*50)
+        to_print += 1
     cumm_bleu += sentence_bleu([ref], cand, smoothing_function=sf.method3)
 # Calculate the averages
 bleu_score = cumm_bleu/N
