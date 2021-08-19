@@ -21,7 +21,7 @@ spanish_filename = dirname + '/' + spanish_dir
 german_file = open(german_filename, mode='rt', encoding='utf-8')
 spanish_file = open(spanish_filename, mode='rt', encoding='utf-8')
 new_file = open('de-es.txt',mode='w',encoding='utf-8')
-max_lines = 10000 #length_doc(german_filename) #1887879
+max_lines = 100 #length_doc(german_filename) #1887879
 print("Length of the Document: ",max_lines)
 #sys.exit()
 for i in range(max_lines):
