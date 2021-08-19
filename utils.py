@@ -1,3 +1,7 @@
+"""
+@Author: Andrés Alejandro Córdova Galleguillos
+"""
+
 # Import some useful libraries
 from io import open
 import unicodedata
@@ -61,6 +65,8 @@ def unicodeToAscii(s):
 def normalizeString(s):
     """
     Lowercase, trim, and remove non-letter characters
+    @param s: a string
+    @return s: a normalized string
     """
     s = unicodeToAscii(s.lower().strip())
     s = re.sub(r"([.!?])", r" \1", s)

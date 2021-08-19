@@ -1,3 +1,7 @@
+"""
+@Author: Andrés Alejandro Córdova Galleguillos
+"""
+
 # Import pytorch
 import torch
 

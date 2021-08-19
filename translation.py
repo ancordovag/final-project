@@ -1,7 +1,15 @@
+"""
+@Author: Andrés Alejandro Córdova Galleguillos
+"""
+
+###
+# Import libraries
+###
 from __future__ import unicode_literals, print_function, division
 
 import random
 
+# Import Pytorch
 import torch
 import torch.nn as nn
 from torch import optim
@@ -10,6 +18,7 @@ import datetime
 import time
 import math
 
+# Import functions of file utils
 from utils import *
 
 from argparse import ArgumentParser
@@ -20,9 +29,21 @@ SOS_token = 0
 EOS_token = 1
 MAX_LENGTH = 200
 
+# Use CUDA if it is available
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
+
 def prepareData(lang1, lang2, reverse=False):
+    """
+    Function
+    @param lang1: Language of origin
+    @param lang2: Target language
+    @param reverse: boolean to reverse the pairs
+    @return input_lang:
+    @return output_lang:
+    @return pairs: a list of pairs, each pair a sentence in the
+                   original language, the other of the target language
+    """
     input_lang, output_lang, pairs = readLangs(lang1, lang2, reverse)
     print("Read %s sentence pairs" % len(pairs))
     for pair in pairs:
@@ -181,7 +202,7 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH, recurrent_type =
                                                      encoder_hidden)
             encoder_outputs[ei] += encoder_output[0, 0]
 
-        decoder_input = torch.tensor([[SOS_token]], device=device)  # SOS
+        decoder_input = torch.tensor([[SOS_token]], device=device)
         decoder_hidden = encoder_hidden
         decoded_words = []
         decoder_attentions = torch.zeros(max_length, max_length)
