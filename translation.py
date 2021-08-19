@@ -240,18 +240,19 @@ def evaluateRandomly(encoder, decoder, n=100, recurrent_type = 'GRU'):
         print('INPUT:', pair[0])
         print('REFER:', pair[1])
         print('HYPOS:', output_sentence)
-        print('')
+        print('-'*20)
 
         destinations.append(pair[1])
         inferences.append(output_sentence)
-        return destinations, inferences
+
+    return destinations, inferences
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--model_name", type=str, default="noname", help="Name of the model, to save or to load")
     parser.add_argument("--epochs", type=int, default=100, help="Number of training evaluations")
-    parser.add_argument("--decoder", type=str, default="A", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
-    parser.add_argument("--recurrent", type=str, default="LSTM", choices=["GRU","LSTM"], help="GRU or LSTM")
+    parser.add_argument("--decoder", type=str, default="B", choices=["A","B"], help="Type of Decoder. A: Attention, B: Basic")
+    parser.add_argument("--recurrent", type=str, default="GRU", choices=["GRU","LSTM"], help="GRU or LSTM")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
 
