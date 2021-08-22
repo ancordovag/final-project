@@ -71,7 +71,7 @@ decoder_eval.load_state_dict(checkpoint_decoder['state_dict'])
 
 # Call the evaluation function of the translation script with the number of sentences to evaluate
 # It returns a list of the original translations, and the predicted by the model
-references, candidates = evaluateRandomly(encoder_eval, decoder_eval, n=to_evaluate, recurrent_type=recurrent, display=False)
+references, candidates, _ = evaluateRandomly(encoder_eval, decoder_eval, n=to_evaluate, recurrent_type=recurrent, display=False)
 
 # Initialize the BLEU and the METEOR score in 0.
 cumm_bleu = 0
