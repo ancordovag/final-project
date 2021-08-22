@@ -53,19 +53,23 @@ def prepareData(lang1, lang2, reverse=False):
     print("Counted words in ", output_lang.name, " : ", output_lang.n_words)
     return input_lang, output_lang, pairs
 
-
+# Prepare the data, and get the "language" objects and the sentence pairs
 input_lang, output_lang, pairs = prepareData('de', 'es', False)
+# Just to see one sentence pair
 print(random.choice(pairs))
 
 def indexesFromSentence(lang, sentence):
+    """ List of indexes for the words in a sentence """
     return [lang.word2index[word] for word in sentence.split(' ')]
 
 def tensorFromSentence(lang, sentence):
+    """ Sentence indexes in a tensor """
     indexes = indexesFromSentence(lang, sentence)
     indexes.append(EOS_token)
     return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
 
 def tensorsFromPair(pair):
+    """ Get both the input tensor and the target tensor of a sentence pair"""
     input_tensor = tensorFromSentence(input_lang, pair[0])
     target_tensor = tensorFromSentence(output_lang, pair[1])
     return (input_tensor, target_tensor)
@@ -74,6 +78,19 @@ teacher_forcing_ratio = 0.5
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion,
           max_length=MAX_LENGTH, attention=True, recurrent='GRU'):
+    """
+    @param input_tensor: the tensor of the sentence in the original language
+    @param target_tensor: the tensor of the sentence in the target language
+    @param encoder: the encoder to train
+    @param decoder: the decoder to train
+    @param encoder_optimizer: the optimizer for the encoder
+    @param decoder_optimizer: the optimizer for the decoder
+    @param criterion: the loss function
+    @param max_length: maximum length of the sentence to generate
+    @param attention: if True, the decoder receives and returns an additional parameter
+    @param recurrent: either GRU or LSTM
+    @return normalized loss
+    """
     if recurrent == 'LSTM':
         encoder_hidden = encoder.initLSTMHidden()
     else:
@@ -137,11 +154,13 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
 
 
 def asMinutes(s):
+    """ Format of time in minutes """
     m = math.floor(s / 60)
     s -= m * 60
     return '%dm %ds' % (m, s)
 
 def timeSince(since, percent):
+    """ Format of the time in function of the percentage of the training process """
     now = time.time()
     s = now - since
     es = s / (percent)
@@ -289,6 +308,7 @@ if __name__ == '__main__':
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
                         help="Device (cuda or cpu)")
 
+    # Read the arguments
     args = parser.parse_args()
     epochs = args.epochs
     decoder_type = args.decoder
@@ -298,6 +318,7 @@ if __name__ == '__main__':
     device = args.device
     hidden_size = 256
 
+    # Initialize Encoder and Decoder, train and get the checkpoints
     encoder1 = EncoderRNN(input_lang.n_words, hidden_size,recurrent_type).to(device)
     if decoder_type == "B":
         decoder1 = DecoderRNN(hidden_size, output_lang.n_words,
@@ -317,11 +338,14 @@ if __name__ == '__main__':
                           'output_size': output_lang.n_words,
                           'dropout': 0.1,
                           'state_dict': decoder1.state_dict()}
+
+    # Create directories to save the model
     log_dir_encoder = make_prex_logdir("encoder", model_name)
     log_dir_decoder = make_prex_logdir("decoder", model_name)
     last_log_dir_encoder = make_last_logdir("last_encoder", model_name)
     last_log_dir_decoder = make_last_logdir("last_decoder", model_name)
 
+    # Save the model
     torch.save(checkpoint_encoder, log_dir_encoder)
     torch.save(checkpoint_decoder, log_dir_decoder)
     empty_last_folder()
